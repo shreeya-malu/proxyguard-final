@@ -210,6 +210,42 @@ export interface AuditResponse {
   gemini: GeminiOutput;
 }
 
+export interface SandboxChange {
+  type: 'REMOVE_VARIABLE' | 'GROUP_OVERRIDE' | 'THRESHOLD_CHANGE' | 'BASE_RATE';
+  variable?: string;
+  attribute?: string;
+  privileged_group?: string;
+  unprivileged_group?: string;
+  description: string;
+  implementation_note: string;
+}
+
+export interface RemediationReportPayload {
+  changes: SandboxChange[];
+  projected_dir: number;
+  projected_grade: string;
+  sandbox_threshold: number;
+}
+
+export interface RemediationReport {
+  original_audit: {
+    grade: string;
+    dir: number;
+    date: string;
+    dataset_name: string;
+    audit_hash: string;
+  };
+  changes: SandboxChange[];
+  projected: {
+    dir: number;
+    grade: string;
+    threshold: number;
+  };
+  implementation_checklist: string[];
+  instructions: string;
+  disclaimer: string;
+}
+
 export interface Certificate {
   certificate_id: string;
   audit_id: string;
@@ -296,6 +332,19 @@ export async function generateCertificate(auditId: string): Promise<{ certificat
     method: 'POST', headers: await authHeaders(),
   });
   if (!res.ok) throw new Error('Certificate generation failed');
+  return res.json();
+}
+
+export async function generateRemediationReport(auditId: string, payload: RemediationReportPayload): Promise<{ report: RemediationReport }> {
+  const res = await fetch(`${BASE_URL}/audit/${auditId}/remediation-report`, {
+    method: 'POST',
+    headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(err.detail || 'Remediation report generation failed');
+  }
   return res.json();
 }
 

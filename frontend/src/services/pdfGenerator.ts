@@ -198,3 +198,148 @@ export function downloadCertificatePDF(cert: Certificate): void {
   // ── Save ─────────────────────────────────────────────────────────────────────
   doc.save(`ProxyGuard_Certificate_${cert.certificate_id}.pdf`);
 }
+
+export interface RemediationReportPayloadPDF {
+  original_audit: {
+    grade: string;
+    dir: number;
+    date: string;
+    dataset_name: string;
+    audit_hash: string;
+  };
+  changes: Array<{ description: string; implementation_note: string }>;
+  projected: { dir: number; grade: string; threshold: number };
+  implementation_checklist: string[];
+  instructions: string;
+  disclaimer: string;
+}
+
+export function downloadRemediationPDF(report: RemediationReportPayloadPDF): void {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210;
+  let y = 0;
+
+  const setFont  = (style: 'normal' | 'bold', size: number) => {
+    doc.setFont('helvetica', style);
+    doc.setFontSize(size);
+  };
+  const setColor = (rgb: readonly [number, number, number]) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+  const line     = (x1: number, y1: number, x2: number, y2: number, thickness = 0.3) => {
+    doc.setLineWidth(thickness);
+    doc.setDrawColor(...BRAND_LIGHT);
+    doc.line(x1, y1, x2, y2);
+  };
+
+  doc.setFillColor(15, 15, 15);
+  doc.rect(0, 0, W, 42, 'F');
+  setColor([255, 255, 255]);
+  setFont('bold', 9);
+  doc.text('PROXYGUARD STUDIO', 20, 14);
+  setFont('normal', 7);
+  doc.text('REMEDIATION PLAN · PROJECTED FAIRNESS IMPROVEMENT', 20, 19);
+  setFont('bold', 18);
+  doc.text('Remediation Plan', 20, 30);
+  setFont('normal', 8);
+  doc.text(report.original_audit.dataset_name, W - 20, 14, { align: 'right' });
+  y = 52;
+
+  const headerRows: [string, string][] = [
+    ['Dataset', report.original_audit.dataset_name],
+    ['Audit Date', report.original_audit.date],
+    ['Original Grade', report.original_audit.grade],
+    ['Original DIR', report.original_audit.dir.toFixed(2)],
+    ['Audit Hash', report.original_audit.audit_hash],
+  ];
+
+  headerRows.forEach(([label, value]) => {
+    setFont('bold', 8);
+    setColor(BRAND_BLACK);
+    doc.text(label, 20, y);
+    setFont('normal', 8);
+    setColor(BRAND_GRAY);
+    doc.text(value, 95, y);
+    y += 6;
+  });
+
+  y += 4;
+  setColor(BRAND_BLACK);
+  setFont('bold', 9);
+  doc.text('Interventions Applied', 20, y);
+  y += 5;
+  line(20, y, W - 20, y, 0.5);
+  y += 6;
+
+  report.changes.forEach((change, index) => {
+    setFont('bold', 8);
+    setColor(BRAND_BLACK);
+    doc.text(`${index + 1}. ${change.description}`, 20, y);
+    y += 5;
+    setFont('normal', 8);
+    setColor(BRAND_GRAY);
+    const changeLines = doc.splitTextToSize(change.implementation_note, W - 40);
+    doc.text(changeLines, 20, y);
+    y += changeLines.length * 4.5 + 4;
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  setFont('bold', 9);
+  setColor(BRAND_BLACK);
+  doc.text('Projected Outcome', 20, y);
+  y += 5;
+  line(20, y, W - 20, y, 0.5);
+  y += 6;
+  setFont('normal', 8);
+  setColor(BRAND_GRAY);
+  const projLines = [
+    `Projected DIR: ${report.projected.dir.toFixed(2)}`,
+    `Projected Grade: ${report.projected.grade}`,
+    `Threshold: ${report.projected.threshold.toFixed(2)}`,
+  ];
+  projLines.forEach(lineText => {
+    doc.text(lineText, 20, y);
+    y += 5;
+  });
+  y += 4;
+
+  setFont('bold', 9);
+  setColor(BRAND_BLACK);
+  doc.text('Implementation Checklist', 20, y);
+  y += 5;
+  line(20, y, W - 20, y, 0.5);
+  y += 6;
+  report.implementation_checklist.forEach((item, index) => {
+    setFont('normal', 8);
+    setColor(BRAND_GRAY);
+    const itemLines = doc.splitTextToSize(`${index + 1}. ${item}`, W - 40);
+    doc.text(itemLines, 20, y);
+    y += itemLines.length * 4.5 + 4;
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  y += 4;
+  setFont('bold', 9);
+  setColor(BRAND_BLACK);
+  doc.text('Next Step', 20, y);
+  y += 5;
+  line(20, y, W - 20, y, 0.5);
+  y += 6;
+  setFont('normal', 8);
+  setColor(BRAND_GRAY);
+  const instructions = doc.splitTextToSize(report.instructions, W - 40);
+  doc.text(instructions, 20, y);
+  y += instructions.length * 4.5 + 4;
+
+  y += 4;
+  setFont('normal', 7);
+  setColor(BRAND_RED);
+  const disclaimerLines = doc.splitTextToSize(report.disclaimer, W - 40);
+  doc.text(disclaimerLines, 20, y);
+
+  doc.save(`ProxyGuard_RemediationPlan_${report.original_audit.audit_hash.slice(0, 8)}.pdf`);
+}

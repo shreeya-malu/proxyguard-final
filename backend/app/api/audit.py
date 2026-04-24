@@ -19,8 +19,9 @@ from typing import Annotated, Optional
 from dataclasses import asdict
 
 import pandas as pd
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.core.bias_engine   import BiasAuditEngine, report_to_dict
 from app.core.sensitivity   import run_sensitivity_analysis
@@ -234,3 +235,63 @@ def list_audits():
 # Expose store for certificate and registry routers
 def get_store() -> dict:
     return _store
+
+class RemediationChange(BaseModel):
+    type: str
+    variable: Optional[str] = None
+    attribute: Optional[str] = None
+    privileged_group: Optional[str] = None
+    unprivileged_group: Optional[str] = None
+    description: str
+    implementation_note: str
+
+class RemediationReportRequest(BaseModel):
+    changes: list[RemediationChange]
+    projected_dir: float
+    projected_grade: str
+    sandbox_threshold: float
+
+@router.post('/audit/{audit_id}/remediation-report')
+def create_remediation_report(audit_id: str, request: RemediationReportRequest = Body(...)):
+    record = _store.get(audit_id)
+    if not record:
+        raise HTTPException(404, 'Audit not found.')
+
+    report = record['report']
+    original = {
+        'grade': report.get('overall_grade', 'UNKNOWN'),
+        'dir': report.get('overall_dir_score', 0.0),
+        'date': record.get('created_at', ''),
+        'dataset_name': report.get('dataset_name', 'Unknown'),
+        'audit_hash': report.get('audit_hash', ''),
+    }
+
+    checklist = []
+    for change in request.changes:
+        if change.type == 'REMOVE_VARIABLE' and change.variable:
+            checklist.append(f'Drop column "{change.variable}" from your dataset before re-training.')
+        else:
+            checklist.append(change.implementation_note)
+
+    instructions = (
+        'After implementing these changes, upload the modified dataset to ProxyGuard for a confirmed audit. '
+        'This remediation plan is a projection only and does not replace a real re-audit.'
+    )
+
+    response = {
+        'original_audit': original,
+        'changes': [change.dict() for change in request.changes],
+        'projected': {
+            'dir': request.projected_dir,
+            'grade': request.projected_grade,
+            'threshold': request.sandbox_threshold,
+        },
+        'implementation_checklist': checklist,
+        'instructions': instructions,
+        'disclaimer': (
+            'Projected outcomes are estimates based on the sandbox input. Actual fairness results '
+            'can only be confirmed by re-running the full audit on the updated dataset.'
+        ),
+    }
+
+    return JSONResponse(content=response)

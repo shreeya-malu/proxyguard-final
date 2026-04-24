@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import PlainEnglishPanel from './PlainEnglishPanel';
 import {
   AuditReport, MetricResult,
   SensitivityReport, BoundedMetricResult, AssumptionLevel,
   DLPResult, GeminiOutput, ImpossibilityConflict,
+  generateRemediationReport, RemediationReportPayload,
+  SandboxChange,
 } from '../../services/api';
+import { downloadRemediationPDF } from '../../services/pdfGenerator';
 
 interface Props {
   report: AuditReport;
@@ -48,6 +51,125 @@ const verdictColor = (v: string) =>
   v === 'ROBUST_PASS' ? C.green : v === 'ROBUST_FAIL' ? C.red : C.amber;
 const gradeColor = (g: string) =>
   ({A: C.green, B: C.blue, C: C.amber, D: '#FF6B35', F: C.red}[g] ?? C.hint);
+
+const DIR_IMPROVEMENT_FACTORS: Record<string, number> = {
+  HIGH: 0.40,
+  MEDIUM: 0.18,
+};
+
+interface SandboxState {
+  removedVariables: Set<string>;
+  groupOverrides: Record<string, { priv: string; unpriv: string }>;
+  dirThreshold: number;
+  baseRates: Record<string, number | null>;
+}
+
+interface SandboxResult {
+  projected_dir: number;
+  projected_dir_status: 'PASS' | 'REVIEW' | 'FAIL';
+  projected_spd: number;
+  projected_spd_status: 'PASS' | 'REVIEW' | 'FAIL';
+  composite_score: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  changes_made: SandboxChange[];
+  passes: boolean;
+}
+
+function computeSandboxResult(
+  report: AuditReport,
+  state: SandboxState
+): SandboxResult {
+  let dir = report.overall_dir_score;
+  let spd = report.group_outcomes[0]?.spd_score ?? 0;
+  const changes: SandboxChange[] = [];
+
+  const removed = report.variable_risks.filter(v => state.removedVariables.has(v.name));
+  for (const v of removed) {
+    const factor = DIR_IMPROVEMENT_FACTORS[v.risk_level] ?? 0.18;
+    dir = Math.min(1.0, dir + (v.bias_contribution_pct / 100) * factor);
+    spd = spd * (1 - v.bias_contribution_pct / 100);
+    changes.push({
+      type: 'REMOVE_VARIABLE',
+      variable: v.name,
+      description: `Remove "${v.name}" (${v.bias_contribution_pct.toFixed(1)}% of bias)`,
+      implementation_note: `Drop the column "${v.name}" from your dataset before training.` +
+        (v.risk_level === 'HIGH'
+          ? ' This is a HIGH-risk proxy — removal is strongly recommended.'
+          : ' Consider binning instead of full removal for MEDIUM-risk variables.'),
+    });
+  }
+
+  for (const go of report.group_outcomes) {
+    const override = state.groupOverrides[go.protected_attribute];
+    if (override && override.priv !== go.privileged_group) {
+      const invertedDir = go.unprivileged_rate / go.privileged_rate;
+      const invertedSpd = go.privileged_rate - go.unprivileged_rate;
+      dir = Math.min(1.0, invertedDir);
+      spd = invertedSpd;
+      changes.push({
+        type: 'GROUP_OVERRIDE',
+        attribute: go.protected_attribute,
+        privileged_group: override.priv,
+        unprivileged_group: override.unpriv,
+        description: `Set ${override.priv} as privileged and ${override.unpriv} as unprivileged for ${go.protected_attribute}`,
+        implementation_note: `Override the assigned privileged group in your fairness review for ${go.protected_attribute}. This changes how DIR is interpreted.`,
+      });
+    }
+  }
+
+  const threshold = state.dirThreshold;
+  if (threshold !== 0.80) {
+    changes.push({
+      type: 'THRESHOLD_CHANGE',
+      description: `DIR threshold changed from 0.80 to ${threshold.toFixed(2)}`,
+      implementation_note: threshold < 0.80
+        ? `Warning: threshold ${threshold.toFixed(2)} is below the EEOC 4/5ths standard. Using this in production may not satisfy legal requirements.`
+        : `Threshold ${threshold.toFixed(2)} is more stringent than the standard.`,
+    });
+  }
+
+  for (const [attr, rate] of Object.entries(state.baseRates)) {
+    if (rate !== null) {
+      changes.push({
+        type: 'BASE_RATE',
+        attribute: attr,
+        description: `Assume base rate ${Math.round(rate * 100)}% for ${attr}`,
+        implementation_note: `Use a user-provided assumption for ${attr} base rate when interpreting sensitivity bounds. Treat this as indicative only.`,
+      });
+    }
+  }
+
+  const dir_status: 'PASS' | 'REVIEW' | 'FAIL' =
+    dir >= threshold ? 'PASS' :
+    dir >= threshold * 0.90 ? 'REVIEW' : 'FAIL';
+
+  const spd_abs = Math.abs(spd);
+  const projected_spd_status: 'PASS' | 'REVIEW' | 'FAIL' =
+    spd_abs <= 0.05 ? 'PASS' :
+    spd_abs <= 0.10 ? 'REVIEW' : 'FAIL';
+
+  const dir_score_val = dir_status === 'PASS' ? 1.0 : dir_status === 'REVIEW' ? 0.5 : 0.0;
+  const dir_weight = 0.30;
+  const original_skipped_contribution = 0.5;
+  const composite = dir_weight * dir_score_val + (1 - dir_weight) * original_skipped_contribution;
+
+  const grade: 'A' | 'B' | 'C' | 'D' | 'F' =
+    composite >= 0.95 ? 'A' :
+    composite >= 0.85 ? 'B' :
+    composite >= 0.70 ? 'C' :
+    composite >= 0.50 ? 'D' : 'F';
+
+  return {
+    projected_dir: Math.round(dir * 10000) / 10000,
+    projected_dir_status: dir_status,
+    projected_spd: Math.round(spd * 10000) / 10000,
+    projected_spd_status,
+    composite_score: Math.round(composite * 10000) / 10000,
+    grade,
+    changes_made: changes,
+    passes: dir_status === 'PASS',
+  };
+}
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
@@ -248,6 +370,275 @@ function SensitivityPanel({ reports }: { reports: SensitivityReport[] }) {
         </p>
       </div>
     </Card>
+  );
+}
+
+function SandboxPanel({ report, auditId }: { report: AuditReport; auditId: string }) {
+  const [removedVariables, setRemovedVariables] = useState<Set<string>>(new Set());
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, { priv: string; unpriv: string }>>({});
+  const [dirThreshold, setDirThreshold] = useState(0.80);
+  const [baseRates, setBaseRates] = useState<Record<string, number | null>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sandboxState: SandboxState = {
+    removedVariables,
+    groupOverrides,
+    dirThreshold,
+    baseRates,
+  };
+
+  const sandboxResult = useMemo(
+    () => computeSandboxResult(report, sandboxState),
+    [report, removedVariables, groupOverrides, dirThreshold, baseRates]
+  );
+
+  const handleToggleVariable = (name: string) => {
+    const next = new Set(removedVariables);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setRemovedVariables(next);
+  };
+
+  const handlePrivilegedChange = (attribute: string, value: string) => {
+    const row = report.group_outcomes.find(go => go.protected_attribute === attribute);
+    if (!row) return;
+    const unpriv = row.privileged_group === value ? row.unprivileged_group : row.privileged_group;
+    setGroupOverrides(prev => ({ ...prev, [attribute]: { priv: value, unpriv } }));
+  };
+
+  const handleUnprivilegedChange = (attribute: string, value: string) => {
+    const row = report.group_outcomes.find(go => go.protected_attribute === attribute);
+    if (!row) return;
+    const priv = row.unprivileged_group === value ? row.privileged_group : row.unprivileged_group;
+    setGroupOverrides(prev => ({ ...prev, [attribute]: { priv, unpriv: value } }));
+  };
+
+  const handleBaseRateChange = (attribute: string, value: number | null) => {
+    setBaseRates(prev => ({ ...prev, [attribute]: value }));
+  };
+
+  const resetAll = () => {
+    setRemovedVariables(new Set());
+    setGroupOverrides({});
+    setDirThreshold(0.80);
+    setBaseRates({});
+    setError(null);
+  };
+
+  const handleGenerateRemediationReport = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const payload: RemediationReportPayload = {
+        changes: sandboxResult.changes_made,
+        projected_dir: sandboxResult.projected_dir,
+        projected_grade: sandboxResult.grade,
+        sandbox_threshold: dirThreshold,
+      };
+      const { report: remediationReport } = await generateRemediationReport(auditId, payload);
+      downloadRemediationPDF(remediationReport as any);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to generate remediation report.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16 }}>
+        <Card style={{ padding: 0 }}>
+          <div style={{ padding: '14px 18px', borderBottom: `0.5px solid ${C.border}` }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '0.8px' }}>INTERVENTIONS</div>
+            <div style={{ fontSize: 14, fontWeight: 700, marginTop: 6 }}>Try a what-if remediation</div>
+            <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, margin: '8px 0 0' }}>
+              All changes are projected client-side from the existing audit result. Re-run the audit after modifying your dataset to confirm.
+            </p>
+          </div>
+          <div style={{ padding: '14px 18px', display: 'grid', gap: 16 }}>
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 8 }}>Variables to remove</div>
+              {report.variable_risks.map(v => (
+                <label key={v.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={removedVariables.has(v.name)}
+                    onChange={() => handleToggleVariable(v.name)}
+                    style={{ width: 14, height: 14 }}
+                  />
+                  <span style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 12 }}>{v.name}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: v.risk_level === 'HIGH' ? C.redText : C.amberText }}>{v.risk_level}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.muted }}>{v.bias_contribution_pct.toFixed(1)}%</span>
+                </label>
+              ))}
+            </div>
+
+            {report.group_outcomes.map(go => {
+              const override = groupOverrides[go.protected_attribute] ?? { priv: go.privileged_group, unpriv: go.unprivileged_group };
+              return (
+                <div key={go.protected_attribute} style={{ padding: '14px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 8 }}>{go.protected_attribute}</div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 4 }}>Privileged</div>
+                      <select
+                        value={override.priv}
+                        onChange={e => handlePrivilegedChange(go.protected_attribute, e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', background: C.surface, color: C.text, border: `0.5px solid ${C.border}`, borderRadius: 8, fontFamily: 'var(--mono)', fontSize: 12 }}
+                      >
+                        {[go.privileged_group, go.unprivileged_group].map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 4 }}>Unprivileged</div>
+                      <select
+                        value={override.unpriv}
+                        onChange={e => handleUnprivilegedChange(go.protected_attribute, e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', background: C.surface, color: C.text, border: `0.5px solid ${C.border}`, borderRadius: 8, fontFamily: 'var(--mono)', fontSize: 12 }}
+                      >
+                        {[go.privileged_group, go.unprivileged_group].map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div style={{ padding: '14px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 10 }}>DIR threshold</div>
+              <input
+                type="range"
+                min={0.60}
+                max={0.95}
+                step={0.01}
+                value={dirThreshold}
+                onChange={e => setDirThreshold(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: 'var(--mono)', fontSize: 11, color: C.text }}>
+                <span>0.60</span>
+                <span>0.95</span>
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700 }}>{dirThreshold.toFixed(2)}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: dirThreshold === 0.80 ? C.green : dirThreshold < 0.70 ? C.red : dirThreshold > 0.85 ? C.amber : C.text }}>
+                  {dirThreshold === 0.80 ? 'EEOC 4/5ths standard' : dirThreshold === 0.75 ? 'Indian courts accepted' : dirThreshold < 0.70 ? 'No legal standard supports this threshold' : 'More stringent than current legal standards'}
+                </span>
+              </div>
+            </div>
+
+            {report.group_outcomes.map(go => {
+              const rate = baseRates[go.protected_attribute] ?? null;
+              return (
+                <div key={`base-${go.protected_attribute}`} style={{ padding: '14px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 10 }}>Base rate ({go.protected_attribute})</div>
+                  <input
+                    type="range"
+                    min={0.05}
+                    max={0.95}
+                    step={0.01}
+                    value={rate ?? 0.5}
+                    onChange={e => handleBaseRateChange(go.protected_attribute, Number(e.target.value))}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{rate === null ? '—' : `${Math.round(rate * 100)}%`}</span>
+                    <button onClick={() => handleBaseRateChange(go.protected_attribute, null)} style={{ border: 'none', background: 'none', color: C.blue, fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer' }}>Clear</button>
+                  </div>
+                  <div style={{ marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, color: C.hint }}>User-provided assumption — not verified. Treat sensitivity results as indicative only.</div>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={resetAll}
+              style={{ width: '100%', padding: 12, background: 'none', border: `1px solid ${C.border2}`, borderRadius: 10, color: C.text, fontFamily: 'var(--mono)', fontSize: 12, cursor: 'pointer' }}
+            >
+              Reset all
+            </button>
+          </div>
+        </Card>
+
+        <Card style={{ padding: 0 }}>
+          <div style={{ padding: '14px 18px', borderBottom: `0.5px solid ${C.border}` }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Live result</div>
+          </div>
+          <div style={{ padding: '18px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 8 }}>CURRENT</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>DIR</span><span>{report.overall_dir_score.toFixed(2)} <strong style={{ color: statusColor(report.group_outcomes[0]?.dir_status) }}>{report.group_outcomes[0]?.dir_status ?? 'N/A'}</strong></span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>SPD</span><span>{report.group_outcomes[0]?.spd_score.toFixed(2)} <strong style={{ color: statusColor(report.group_outcomes[0]?.spd_status) }}>{report.group_outcomes[0]?.spd_status ?? 'N/A'}</strong></span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Grade</span><span style={{ color: gradeColor(report.overall_grade) }}>{report.overall_grade}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Composite</span><span>{(report.composite_score).toFixed(2)}</span></div>
+              </div>
+            </div>
+            <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginBottom: 8 }}>PROJECTED</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>DIR</span><span>{sandboxResult.projected_dir.toFixed(2)} <strong style={{ color: statusColor(sandboxResult.projected_dir_status) }}>{sandboxResult.projected_dir_status}</strong></span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>SPD</span><span>{sandboxResult.projected_spd.toFixed(2)} <strong style={{ color: statusColor(sandboxResult.projected_spd_status) }}>{sandboxResult.projected_spd_status}</strong></span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Grade</span><span style={{ color: gradeColor(sandboxResult.grade) }}>{sandboxResult.grade}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Composite</span><span>{sandboxResult.composite_score.toFixed(2)}</span></div>
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '16px 18px', background: C.surface2, borderTop: `0.5px solid ${C.border}` }}>
+            {sandboxResult.passes ? (
+              <div style={{ color: C.green, fontFamily: 'var(--mono)', fontSize: 12 }}>
+                ✓ Projected PASS · Projected DIR {sandboxResult.projected_dir.toFixed(2)} · All Tier 1 metrics projected PASS.
+              </div>
+            ) : (
+              <div style={{ color: C.amber, fontFamily: 'var(--mono)', fontSize: 12 }}>
+                ⚠ Not yet passing. Try removing 1 more HIGH-risk variable or adjust the threshold.
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <div style={{ padding: '14px 18px', borderBottom: `0.5px solid ${C.border}` }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '0.8px' }}>CHANGES REQUIRED IN YOUR DATASET</div>
+        </div>
+        <div style={{ padding: '18px', display: 'grid', gap: 14 }}>
+          {sandboxResult.changes_made.length > 0 ? sandboxResult.changes_made.map((change, index) => (
+            <div key={index} style={{ padding: '14px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>{index + 1}. {change.description}</div>
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{change.implementation_note}</div>
+            </div>
+          )) : (
+            <div style={{ fontSize: 12, color: C.muted }}>No interventions selected yet. Use the controls to project changes.</div>
+          )}
+          <div style={{ padding: '14px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.amber, marginBottom: 8 }}>Projection disclaimer</div>
+            <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, margin: 0 }}>
+              These are projections based on proxy contribution share and user assumptions. Actual improvement requires re-running the full audit after changing the dataset.
+            </p>
+            <p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, marginTop: 8 }}>
+              Projected DIR improvement uses factor 0.40 for HIGH-risk variables and 0.18 for MEDIUM-risk variables — not computed from your data.
+            </p>
+          </div>
+          {sandboxResult.passes && (
+            <div style={{ display: 'grid', gap: 10 }}>
+              <button
+                onClick={handleGenerateRemediationReport}
+                disabled={busy}
+                style={{ width: '100%', padding: 14, background: C.green, color: C.surface, border: 'none', borderRadius: 10, fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              >
+                {busy ? 'Generating report…' : 'Generate Remediation Report'}
+              </button>
+              {error && <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: C.red }}>{error}</div>}
+            </div>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -479,7 +870,7 @@ function RemediationLoopPanel({ report }: { report: AuditReport }) {
 }
 
 export default function AuditPage({ report: r, auditId, sensitivityReports, dlpResult, gemini, onGenerateCertificate }: Props) {
-  const [tab, setTab] = useState<'plain' | 'overview' | 'metrics' | 'proxies' | 'remediation' | 'sensitivity' | 'legal'>('plain');
+  const [tab, setTab] = useState<'plain' | 'overview' | 'metrics' | 'proxies' | 'sandbox' | 'remediation' | 'sensitivity' | 'legal'>('plain');
   const gc = gradeColor(r.overall_grade);
 
   const tabs = [
@@ -487,6 +878,7 @@ export default function AuditPage({ report: r, auditId, sensitivityReports, dlpR
     { id: 'overview' as const,    label: 'Overview' },
     { id: 'metrics' as const,     label: 'All Metrics',       badge: r.metrics_computed },
     { id: 'proxies' as const,     label: 'Proxies',           badge: r.total_flags },
+    { id: 'sandbox' as const,     label: 'Sandbox',           badge: undefined },
     { id: 'remediation' as const, label: '🔧 Fix & Re-audit', badge: r.remediation_plan?.length ?? 0, show: (r.remediation_plan?.length ?? 0) > 0 },
     { id: 'sensitivity' as const, label: 'Sensitivity ◈',    badge: sensitivityReports.length, show: sensitivityReports.length > 0 },
     { id: 'legal' as const,       label: 'Legal',             badge: gemini.legal_context?.length },
@@ -665,6 +1057,7 @@ export default function AuditPage({ report: r, auditId, sensitivityReports, dlpR
           )}
 
           {tab === 'sensitivity' && <SensitivityPanel reports={sensitivityReports} />}
+          {tab === 'sandbox' && <SandboxPanel report={r} auditId={auditId} />}
           {tab === 'remediation' && <RemediationLoopPanel report={r} />}
           {tab === 'legal' && <LegalPanel gemini={gemini} />}
         </div>
