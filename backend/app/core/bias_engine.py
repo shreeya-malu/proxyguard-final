@@ -1058,6 +1058,15 @@ class BiasAuditEngine:
         step_num = 1
         running_dir = current_dir
 
+        # Use the same projection factors as the frontend unified engine:
+        #   REMOVE: HIGH=0.38, MEDIUM=0.22 (matching REMOVE_FACTORS in AuditPage.tsx)
+        #   BIN:    attenuated by 55%  (BIN_ATTENUATION = 0.55)
+        #   REWEIGHT: attenuated by 40% (REWEIGHT_ATTENUATION = 0.40)
+        # This ensures Fix & Re-audit and Sandbox are driven by identical mathematics.
+        REMOVE_FACTORS = {"HIGH": 0.38, "MEDIUM": 0.22, "LOW": 0.05}
+        BIN_ATTENUATION = 0.55
+        REWEIGHT_ATTENUATION = 0.40
+
         ordered = sorted(
             [v for v in variable_risks if v.risk_level in ("HIGH", "MEDIUM")],
             key=lambda v: v.bias_contribution_pct, reverse=True,
@@ -1065,17 +1074,25 @@ class BiasAuditEngine:
         for v in ordered:
             if not v.remediation:
                 continue
-            top    = v.remediation[0]
-            parts  = top.get("expected_dir_improvement", "+0.00").replace("+", "").split(" to ")
-            try:
-                impr = sum(float(p) for p in parts) / len(parts)
-            except Exception:
-                impr = 0.0
-            running_dir = min(round(running_dir + impr, 3), 1.0)
+            top = v.remediation[0]
+            action = top.get("action", "REMOVE")
+            base_factor = REMOVE_FACTORS.get(v.risk_level, 0.22)
+            if action == "REMOVE":
+                attenuation = 1.0
+            elif action == "BIN":
+                attenuation = BIN_ATTENUATION
+            elif action == "REWEIGHT":
+                attenuation = REWEIGHT_ATTENUATION
+            else:
+                attenuation = 0.0
+
+            dir_delta = (v.bias_contribution_pct / 100.0) * base_factor * attenuation
+            running_dir = min(round(running_dir + dir_delta, 4), 1.0)
             steps.append({
-                "step": step_num, "variable": v.name, "action": top["action"],
+                "step": step_num, "variable": v.name, "action": action,
                 "confidence": top["confidence"], "reason": top["reason"],
                 "bias_share_pct": v.bias_contribution_pct,
+                "dir_delta": round(dir_delta, 4),
                 "projected_dir_after": running_dir,
                 "passes_after": running_dir >= 0.80,
             })
