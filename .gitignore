@@ -1,0 +1,183 @@
+# =========================
+
+# 🔐 Secrets & Environment
+
+# =========================
+
+.env
+.env.*
+*.env
+*.key
+*.pem
+secrets.json
+credentials.json
+
+# =========================
+
+# 🐍 Python
+
+# =========================
+
+**pycache**/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+
+venv/
+env/
+ENV/
+.venv/
+
+# Python packaging
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+
+# 📦 Node / Frontend (if using React/Next/Vite)
+
+# =========================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+
+dist/
+build/
+.next/
+out/
+
+# =========================
+
+# 📊 Data Files (IMPORTANT)
+
+# =========================
+
+# Raw datasets (never commit sensitive data)
+
+data/raw/
+data/private/
+*.csv
+*.xlsx
+*.parquet
+
+# Allow sample/test datasets only
+
+!data/sample/
+!data/sample/*.csv
+
+# =========================
+
+# 🧪 ML / Experiments
+
+# =========================
+
+# Model artifacts
+
+models/
+checkpoints/
+*.h5
+*.pt
+*.pth
+*.pkl
+*.joblib
+
+# Experiment logs
+
+wandb/
+mlruns/
+logs/
+
+# =========================
+
+# 📈 Notebooks
+
+# =========================
+
+.ipynb_checkpoints/
+
+# Optional: ignore all notebooks except final ones
+
+# *.ipynb
+
+# !notebooks/final/
+
+# =========================
+
+# ⚙️ IDE & Editor
+
+# =========================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# =========================
+
+# 🧾 Logs & Temp Files
+
+# =========================
+
+*.log
+tmp/
+temp/
+*.tmp
+
+# =========================
+
+# 🐳 Docker
+
+# =========================
+
+.dockerignore
+
+# =========================
+
+# 🧪 Testing
+
+# =========================
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+
+# 🔍 ProxyGuard Specific
+
+# =========================
+
+# Generated audit reports
+
+reports/
+exports/
+*.pdf
+
+# Simulation outputs
+
+simulations/
+sandbox_runs/
+
+# Uploaded user datasets
+
+uploads/
+
+# =========================
+
+# ⚠️ OS Files
+
+# =========================
+
+Thumbs.db
+.DS_Store

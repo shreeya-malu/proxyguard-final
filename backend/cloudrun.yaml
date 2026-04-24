@@ -1,0 +1,42 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: proxyguard-backend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to zero when no traffic (saves cost)
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        # 60s timeout — audit engine can take up to 20s on large datasets
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 10
+      timeoutSeconds: 60
+      containers:
+        - image: IMAGE_URL_PLACEHOLDER
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gemini-api-key
+                  key: latest
+            - name: GCP_PROJECT_ID
+              value: PROJECT_ID_PLACEHOLDER
+            - name: FIREBASE_PROJECT_ID
+              value: PROJECT_ID_PLACEHOLDER
+            - name: KMS_LOCATION
+              value: global
+            - name: KMS_KEYRING
+              value: audit-ring
+            - name: KMS_KEY
+              value: cert-signing
+          ports:
+            - containerPort: 8080
