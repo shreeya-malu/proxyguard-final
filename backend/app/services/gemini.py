@@ -1,7 +1,7 @@
 """
 ProxyGuard Studio — Gemini Service v2
 ======================================
-Uses Gemini 1.5 Flash (free tier) to generate:
+Uses Gemini 2.5 Flash-Lite (budget-friendly tier) to generate:
   1. Plain-English CRO summary (non-technical stakeholders)
   2. Structured legal context (which laws apply and why)
   3. Impossibility conflict explanation (plain English)
@@ -22,7 +22,7 @@ import httpx
 from typing import Optional
 from dataclasses import asdict
 
-GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
 
 LEGAL_DISCLAIMER = (
@@ -53,7 +53,7 @@ async def generate_audit_summary(report_dict: dict, region: str = "india") -> di
             "cro_summary":        cro,
             "legal_context":      legal,
             "impossibility_note": impossi,
-            "generated_by":       "gemini-1.5-flash",
+            "generated_by":       "gemini-2.5-flash-lite",
             "disclaimer":         LEGAL_DISCLAIMER,
         }
     except Exception as e:

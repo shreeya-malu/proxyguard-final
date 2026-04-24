@@ -24,7 +24,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
 
 
@@ -202,7 +202,7 @@ async def _call_gemini_narrative(payload: dict) -> NarrativeOutput:
             "temperature":       0.4,   # warm enough for empathy, grounded enough to not hallucinate
             "maxOutputTokens":   800,
             "topP":              0.85,
-            "responseMimeType":  "application/json",   # forces JSON output mode in Gemini 1.5 Flash
+            "responseMimeType":  "application/json",   # forces JSON output mode in Gemini 2.5 Flash-Lite
         },
         "safetySettings": [
             {"category": c, "threshold": "BLOCK_NONE"}
@@ -247,7 +247,7 @@ async def _call_gemini_narrative(payload: dict) -> NarrativeOutput:
         scale_statement = parsed["scale_statement"],
         what_changes    = parsed["what_changes"],
         closing_call    = parsed["closing_call"],
-        generated_by    = "gemini-1.5-flash",
+        generated_by    = "gemini-2.5-flash-lite",
     )
 
 

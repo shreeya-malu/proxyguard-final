@@ -58,7 +58,7 @@ class NarrativeResponse(BaseModel):
     closing_call:     str
 
     # Transparency
-    generated_by:     str    # "gemini-1.5-flash" or "fallback"
+    generated_by:     str    # "gemini-2.5-flash-lite" or "fallback"
     caution:          str    # always shown in the UI footer
 
 
