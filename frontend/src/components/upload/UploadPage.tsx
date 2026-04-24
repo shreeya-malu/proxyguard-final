@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { runAudit, AuditResponse, AuditConfig } from '../../services/api';
+import DemoMode from './DemoMode';
 
 type Industry = 'finance' | 'healthcare' | 'hr';
 
@@ -94,6 +95,7 @@ function ColumnPicker({ label, hint, columns, selected, onToggle }: {
 
 // ── Main component
 export default function UploadPage({ onAuditComplete }: Props) {
+  const [showDemo,      setShowDemo]      = useState(false);
   const [file,          setFile]          = useState<File | null>(null);
   const [columns,       setColumns]       = useState<string[]>([]);
   const [parsing,       setParsing]       = useState(false);
@@ -173,11 +175,60 @@ export default function UploadPage({ onAuditComplete }: Props) {
 
   return (
     <div className="upload-page">
+      {showDemo && (
+        <DemoMode
+          onDemoComplete={(result) => { setShowDemo(false); onAuditComplete(result); }}
+          onDismiss={() => setShowDemo(false)}
+        />
+      )}
+
       <div className="upload-headline">Audit your dataset<br /><em>before</em> you train.</div>
       <p className="upload-sub">
         Upload a CSV. ProxyGuard reads the column headers automatically — click to select
         your protected attributes and outcome column. No typing required.
       </p>
+
+      {/* Watch Demo button */}
+      <button
+        onClick={() => setShowDemo(true)}
+        style={{
+          display:        'flex',
+          alignItems:     'center',
+          gap:            10,
+          width:          '100%',
+          padding:        '14px 20px',
+          marginBottom:   24,
+          background:     'rgba(77,159,255,0.06)',
+          border:         '0.5px solid rgba(77,159,255,0.3)',
+          borderRadius:   12,
+          cursor:         'pointer',
+          textAlign:      'left',
+          transition:     'background 0.15s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(77,159,255,0.12)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(77,159,255,0.06)')}
+      >
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: 'rgba(77,159,255,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, flexShrink: 0,
+        }}>▶</div>
+        <div>
+          <div style={{
+            fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,
+            color: '#4D9FFF', marginBottom: 2,
+          }}>
+            Watch live demo — COMPAS dataset
+          </div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8888AA' }}>
+            See bias detected in a real US court dataset · 22 seconds · no upload needed
+          </div>
+        </div>
+        <div style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 10, color: '#55556A' }}>
+          22s
+        </div>
+      </button>
 
       {/* Drop zone */}
       <div
