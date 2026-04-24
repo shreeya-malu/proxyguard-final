@@ -145,3 +145,18 @@ def verify_audit(audit_id: str) -> Optional[dict]:
         except Exception:
             pass
     return next((r for r in _MOCK_REGISTRY if r["audit_id"] == audit_id), None)
+
+def get_audit_report(audit_id: str):
+    """
+    Fetch audit report from the in-memory audit store.
+    Used by narrative endpoint.
+    """
+    from app.api.audit import get_store
+
+    store = get_store()
+    record = store.get(audit_id)
+
+    if not record:
+        return None
+
+    return record.get("report")

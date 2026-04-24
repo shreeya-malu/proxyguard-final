@@ -8,6 +8,7 @@ import {
   SandboxChange,
 } from '../../services/api';
 import { downloadRemediationPDF } from '../../services/pdfGenerator';
+import HumanStoryPanel from './HumanStoryPanel';
 
 interface Props {
   report: AuditReport;
@@ -870,12 +871,13 @@ function RemediationLoopPanel({ report }: { report: AuditReport }) {
 }
 
 export default function AuditPage({ report: r, auditId, sensitivityReports, dlpResult, gemini, onGenerateCertificate }: Props) {
-  const [tab, setTab] = useState<'plain' | 'overview' | 'metrics' | 'proxies' | 'sandbox' | 'remediation' | 'sensitivity' | 'legal'>('plain');
+  const [tab, setTab] = useState<'plain' | 'overview' | 'story' | 'metrics' | 'proxies' | 'sandbox' | 'remediation' | 'sensitivity' | 'legal'>('plain');
   const gc = gradeColor(r.overall_grade);
 
   const tabs = [
     { id: 'plain' as const,       label: '📖 Plain English' },
     { id: 'overview' as const,    label: 'Overview' },
+    { id: 'story' as const, label: 'Human Impact', icon: '❤' },
     { id: 'metrics' as const,     label: 'All Metrics',       badge: r.metrics_computed },
     { id: 'proxies' as const,     label: 'Proxies',           badge: r.total_flags },
     { id: 'sandbox' as const,     label: 'Sandbox',           badge: undefined },
@@ -938,7 +940,13 @@ export default function AuditPage({ report: r, auditId, sensitivityReports, dlpR
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         <div>
           {tab === 'plain' && <PlainEnglishPanel report={r} />}
-
+          {tab === 'story' && (
+            <HumanStoryPanel 
+              report={r} 
+              gemini={gemini} 
+              annualDecisions={10000} 
+            />
+          )}
           {tab === 'overview' && (
             <div>
               {r.group_outcomes.map(go => (
