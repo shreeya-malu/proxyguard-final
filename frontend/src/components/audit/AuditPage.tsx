@@ -1126,6 +1126,65 @@ function RemediationLoopPanel({ report }: { report: AuditReport }) {
   );
 }
 
+// ── VariableRiskRow ────────────────────────────────────────────────────────────
+// Extracted from the proxies tab map() to fix the Rules of Hooks violation.
+// useState cannot be called inside .map() — it must live in a real component.
+function VariableRiskRow({ v }: { v: AuditReport['variable_risks'][number] }) {
+  const [open, setOpen] = useState(false);
+  const sc = v.risk_level === 'HIGH' ? C.red : v.risk_level === 'MEDIUM' ? C.amber : C.hint;
+  return (
+    <div style={{ borderBottom: `0.5px solid ${C.border}` }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', cursor: 'pointer' }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.surface2}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+      >
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: sc, flexShrink: 0 }} />
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 500, flex: 1 }}>{v.name}</span>
+        {v.proxy_for && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint }}>→ {v.proxy_for}</span>
+        )}
+        {v.is_caste_proxy_candidate && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '1px 5px', borderRadius: 99, background: C.redBg, color: C.redText }}>
+            CASTE PROXY
+          </span>
+        )}
+        <div style={{ display: 'flex', gap: 8, fontFamily: 'var(--mono)', fontSize: 10, color: C.hint }}>
+          <span title="Normalised Mutual Information = MI / H(A)">NMI {v.mi_score.toFixed(3)}</span>
+          <span title="Cramér's V (bias-corrected, Bergsma 2013)">V {v.cramers_v.toFixed(3)}</span>
+        </div>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 500, color: sc }}>{v.proxy_score.toFixed(3)}</span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, padding: '2px 8px', borderRadius: 4, background: `${sc}22`, color: sc }}>
+          {v.risk_level}
+        </span>
+      </div>
+      {open && v.remediation.length > 0 && (
+        <div style={{ padding: '0 18px 12px 34px', background: C.surface2 }}>
+          {v.remediation.map((rem, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', marginBottom: 6, background: C.surface, borderRadius: 8, border: `0.5px solid ${C.border}` }}>
+              <span style={{
+                fontFamily: 'var(--mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4,
+                background: rem.action === 'REMOVE' ? C.redBg : rem.action === 'BIN' ? C.amberBg : C.blueBg,
+                color:      rem.action === 'REMOVE' ? C.redText : rem.action === 'BIN' ? C.amberText : C.blueText,
+                flexShrink: 0, alignSelf: 'flex-start',
+              }}>
+                {rem.action}
+              </span>
+              <div>
+                <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 3 }}>{rem.reason}</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.green }}>
+                  Expected: {rem.expected_dir_improvement} · Confidence: {(rem.confidence * 100).toFixed(0)}%
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AuditPage({ report: r, auditId, sensitivityReports, dlpResult, gemini, onGenerateCertificate }: Props) {
   const [tab, setTab] = useState<'plain' | 'overview' | 'story' | 'metrics' | 'proxies' | 'sandbox' | 'remediation' | 'sensitivity' | 'legal'>('plain');
   const gc = gradeColor(r.overall_grade);
@@ -1281,41 +1340,9 @@ export default function AuditPage({ report: r, auditId, sensitivityReports, dlpR
                     Proxy Score = w\u2093\u2090\u1d52\u1d3a\u1d35 × NMI(X,A) + w\u1d5c × V — weights set by feature cardinality · Click row for remediation
                   </div>
                 </div>
-                {r.variable_risks.map(v => {
-                  const [open, setOpen] = useState(false);
-                  const sc = v.risk_level === 'HIGH' ? C.red : v.risk_level === 'MEDIUM' ? C.amber : C.hint;
-                  return (
-                    <div key={v.name} style={{ borderBottom: `0.5px solid ${C.border}` }}>
-                      <div onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', cursor: 'pointer' }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.surface2}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: sc, flexShrink: 0 }} />
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 500, flex: 1 }}>{v.name}</span>
-                        {v.proxy_for && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint }}>\u2192 {v.proxy_for}</span>}
-                        {v.is_caste_proxy_candidate && <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '1px 5px', borderRadius: 99, background: C.redBg, color: C.redText }}>CASTE PROXY</span>}
-                        <div style={{ display: 'flex', gap: 8, fontFamily: 'var(--mono)', fontSize: 10, color: C.hint }}>
-                          <span title="Normalised Mutual Information = MI / H(A)">NMI {v.mi_score.toFixed(3)}</span>
-                          <span title="Cramér's V (bias-corrected, Bergsma 2013)">V {v.cramers_v.toFixed(3)}</span>
-                        </div>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 500, color: sc }}>{v.proxy_score.toFixed(3)}</span>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, padding: '2px 8px', borderRadius: 4, background: `${sc}22`, color: sc }}>{v.risk_level}</span>
-                      </div>
-                      {open && v.remediation.length > 0 && (
-                        <div style={{ padding: '0 18px 12px 34px', background: C.surface2 }}>
-                          {v.remediation.map((rem, i) => (
-                            <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', marginBottom: 6, background: C.surface, borderRadius: 8, border: `0.5px solid ${C.border}` }}>
-                              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, padding: '2px 7px', borderRadius: 4, background: rem.action === 'REMOVE' ? C.redBg : rem.action === 'BIN' ? C.amberBg : C.blueBg, color: rem.action === 'REMOVE' ? C.redText : rem.action === 'BIN' ? C.amberText : C.blueText, flexShrink: 0, alignSelf: 'flex-start' }}>{rem.action}</span>
-                              <div>
-                                <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 3 }}>{rem.reason}</div>
-                                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.green }}>Expected: {rem.expected_dir_improvement} · Confidence: {(rem.confidence * 100).toFixed(0)}%</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {r.variable_risks.map(v => (
+                  <VariableRiskRow key={v.name} v={v} />
+                ))}
               </Card>
             </div>
           )}
