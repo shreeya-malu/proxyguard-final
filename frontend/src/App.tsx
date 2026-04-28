@@ -11,7 +11,6 @@ import CertificatePage from './components/audit/CertificatePage';
 import ExplorePage    from './components/explore/ExplorePage';
 import SimulatePage   from './components/simulate/SimulatePage';
 import RegistryPage   from './components/registry/RegistryPage';
-import './styles/globals.css';
 
 export default function App() {
   return <AuthProvider><Shell /></AuthProvider>;
@@ -177,7 +176,7 @@ function Shell() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {surface === 'audit' && auditStep === 'results' && auditResult && (
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 10px', borderRadius: 99, fontWeight: 500, background: `${gc}22`, color: gc }}>
-                {auditResult.report.overall_result}
+                {auditResult.report.overall_grade}
               </span>
             )}
             {surface === 'audit' && auditStep === 'certificate' && (
