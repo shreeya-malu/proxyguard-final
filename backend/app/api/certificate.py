@@ -27,8 +27,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.api.audit import get_store
 
+from app.api.audit import get_store
+from fastapi import Depends
+from app.core.auth import get_current_user
 router = APIRouter()
 
 KMS_PROJECT    = os.environ.get("GCP_PROJECT_ID", "")
@@ -39,13 +41,17 @@ KMS_KEY_SECRET = os.environ.get("KMS_HMAC_SECRET", "proxyguard-local-dev-secret"
 
 
 @router.post("/certificate/generate/{audit_id}")
-async def generate_certificate(audit_id: str):
+# LOCAL TESTING: Uncomment user parameter below for production
+async def generate_certificate(audit_id: str,
+    # user=Depends(get_current_user)
+):
     store  = get_store()
     record = store.get(audit_id)
     if not record:
         raise HTTPException(404, "Audit not found.")
 
     report = record["report"]
+    
 
     # ── Step 1: Verify hash integrity ─────────────────────────────────────────
     report_for_hash = {k: v for k, v in report.items() if k != "audit_hash"}

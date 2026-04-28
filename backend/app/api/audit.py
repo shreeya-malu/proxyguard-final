@@ -28,6 +28,9 @@ from app.core.sensitivity   import run_sensitivity_analysis
 from app.services.gemini    import generate_audit_summary
 from app.services.dlp       import scan_for_pii
 
+from fastapi import Depends
+from app.core.auth import get_current_user
+
 router   = APIRouter()
 _engine  = BiasAuditEngine()
 _store:  dict[str, dict] = {}    # in-memory; Firestore in production
@@ -93,6 +96,8 @@ async def run_audit(
     region:               Annotated[str, Form()] = "india",
     ground_truth_column:  Annotated[Optional[str], Form()] = None,
     org_name:             Annotated[Optional[str], Form()] = None,
+    # LOCAL TESTING: Uncomment below for production
+    # user=Depends(get_current_user),
 ):
     """
     Full audit pipeline:

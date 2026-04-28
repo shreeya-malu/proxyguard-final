@@ -40,3 +40,7 @@ spec:
               value: cert-signing
           ports:
             - containerPort: 8080
+livenessProbe:
+  httpGet:
+    path: /api/v1/health
+    port: 8080

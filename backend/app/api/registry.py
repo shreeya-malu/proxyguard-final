@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.registry import publish_audit, get_registry, verify_audit
 from app.api.audit import get_store
+from fastapi import Depends
+from app.core.auth import get_current_user
 
 router = APIRouter()
 
@@ -15,7 +17,10 @@ class PublishRequest(BaseModel):
     org_name:    Optional[str] = None
 
 @router.post("/registry/publish")
-def publish(req: PublishRequest):
+# LOCAL TESTING: Uncomment user parameter below for production
+def publish(req: PublishRequest,
+    # user=Depends(get_current_user)
+):
     store  = get_store()
     record = store.get(req.audit_id)
     if not record:
