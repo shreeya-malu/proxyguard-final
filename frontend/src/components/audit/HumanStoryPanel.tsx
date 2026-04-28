@@ -524,7 +524,7 @@ export default function HumanStoryPanel({ report, gemini, annualDecisions = 1000
         border: `0.5px solid ${C.border}`, marginBottom: 28,
       }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, color: C.hint, marginBottom: 12 }}>
-          OUTCOME RATES — WHO GETS A FAIR RESULT
+          OUTCOME RATES: WHO GETS A FAIR RESULT
         </div>
         <ScaleBar
           label={go?.privileged_group ?? 'Privileged group'}

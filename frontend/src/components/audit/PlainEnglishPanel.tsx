@@ -81,13 +81,13 @@ function VerdictBlock({ report }: { report: AuditReport }) {
 
   if (verdict === 'PASS') {
     return (
-      <Section icon="✅" title="This dataset passes fairness checks" color={C.green} borderColor={C.greenBorder} bg={C.greenBg}>
+      <Section icon="" title="This dataset passes fairness checks" color={C.green} borderColor={C.greenBorder} bg={C.greenBg}>
         <Bullet>
           The two groups being compared get similar outcomes. For every 1,000 decisions,
           the gap between groups is small enough to meet international fairness standards.
         </Bullet>
         <Bullet>
-          This does not mean the dataset is perfect — it means the most important
+          This does not mean the dataset is perfect it means the most important
           fairness checks did not find strong evidence of discrimination.
           Continue monitoring once the model is deployed.
         </Bullet>
@@ -97,13 +97,13 @@ function VerdictBlock({ report }: { report: AuditReport }) {
 
   if (verdict === 'REVIEW') {
     return (
-      <Section icon="⚠️" title="This dataset has issues worth fixing" color={C.amber} borderColor={C.amberBorder} bg={C.amberBg}>
+      <Section icon="" title="This dataset has issues worth fixing" color={C.amber} borderColor={C.amberBorder} bg={C.amberBg}>
         <Bullet>
           Some variables in this dataset are connected to protected characteristics
           (like race, caste, or gender) in ways that could make a trained model unfair.
         </Bullet>
         <Bullet>
-          The overall numbers are borderline — not a clear failure, but not safe to ignore.
+          The overall numbers are borderline not a clear failure, but not safe to ignore.
           Applying the fixes recommended in the Fix Plan tab would make this dataset
           significantly safer to use.
         </Bullet>
@@ -113,10 +113,10 @@ function VerdictBlock({ report }: { report: AuditReport }) {
 
   // FAIL
   return (
-    <Section icon="🚨" title="This dataset is not safe to train a model on" color={C.red} borderColor={C.redBorder} bg={C.redBg}>
+    <Section icon="" title="This dataset is not safe to train a model on" color={C.red} borderColor={C.redBorder} bg={C.redBg}>
       <p style={{ fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 16 }}>
         <strong>In plain terms:</strong> if you train an AI model on this data right now, the model
-        will likely treat {go.unprivileged_group} people unfairly — not because you programmed it to,
+        will likely treat {go.unprivileged_group} people unfairly not because you programmed it to,
         but because the historical patterns in this data already contain that unfairness.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
@@ -127,7 +127,7 @@ function VerdictBlock({ report }: { report: AuditReport }) {
       <Bullet>
         Imagine 1,000 loan applications. If {go.privileged_group} applicants get approved at {(go.privileged_rate * 100).toFixed(0)}%,
         then {go.unprivileged_group} applicants with the exact same financial profiles are getting approved
-        at only {(go.unprivileged_rate * 100).toFixed(0)}% — a difference of {per1000} people per 1,000
+        at only {(go.unprivileged_rate * 100).toFixed(0)}%  a difference of {per1000} people per 1,000
         who are rejected for no legitimate reason.
       </Bullet>
       <Bullet>
@@ -162,18 +162,18 @@ function ProxyBlock({ risks, region }: { risks: VariableRisk[]; region: string }
   };
 
   return (
-    <Section icon="🔍" title={`${flagged.length} variables are secretly connected to protected characteristics`} color={C.amber} borderColor={C.amberBorder} bg={C.amberBg}>
+    <Section icon="" title={`${flagged.length} variables are secretly connected to protected characteristics`} color={C.amber} borderColor={C.amberBorder} bg={C.amberBg}>
       <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.65, marginBottom: 14 }}>
         <strong style={{ color: C.text }}>What is a proxy variable?</strong> A proxy variable is a column
         that looks neutral but is actually mathematically linked to a protected characteristic
         (like caste, religion, or gender). Including it in a model is legally equivalent to
-        using the protected characteristic directly — even if you never include that column.
+        using the protected characteristic directly even if you never include that column.
         <Tag text="technical: Mutual Information + Cramér's V" />
       </p>
       {high.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.redText, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-            🔴 Remove these immediately
+            Remove these immediately
           </div>
           {high.map(v => (
             <div key={v.name} style={{ marginBottom: 10, padding: '10px 14px', background: 'rgba(255,77,109,0.06)', borderRadius: 8, border: `0.5px solid rgba(255,77,109,0.2)` }}>
@@ -195,8 +195,8 @@ function ProxyBlock({ risks, region }: { risks: VariableRisk[]; region: string }
                 )}
               </div>
               <p style={{ fontSize: 10, color: C.hint, margin: '4px 0 0 0', lineHeight: 1.5, background: 'rgba(255,184,48,0.05)', padding: '6px 8px', borderRadius: 6 }}>
-                <strong style={{ color: C.amberText }}>What this means in plain English:</strong> Imagine two students both get the same exam score, but the system predicts one will succeed and the other won't — and that split follows group lines. That's what a high Proxy Index detects: the variable is <em>behaving like</em> a group label, even if it doesn't say so.<br />
-                <span style={{ color: C.hint }}>⚠ This is about pattern-matching, not proof of intent. Just because two things move together doesn't mean one causes the other — a classic example: ice cream sales and drowning rates both rise in summer, but ice cream doesn't cause drowning. What matters here is that the <em>pattern exists</em>, which is enough to cause unfair outcomes in a model even without any intent.</span>
+                <strong style={{ color: C.amberText }}>What this means in plain English:</strong> Imagine two students both get the same exam score, but the system predicts one will succeed and the other won't and that split follows group lines. That's what a high Proxy Index detects: the variable is <em>behaving like</em> a group label, even if it doesn't say so.<br />
+                <span style={{ color: C.hint }}>This is about pattern-matching, not proof of intent. Just because two things move together doesn't mean one causes the other a classic example: ice cream sales and drowning rates both rise in summer, but ice cream doesn't cause drowning. What matters here is that the <em>pattern exists</em>, which is enough to cause unfair outcomes in a model even without any intent.</span>
               </p>
             </div>
           ))}
@@ -205,7 +205,7 @@ function ProxyBlock({ risks, region }: { risks: VariableRisk[]; region: string }
       {medium.length > 0 && (
         <div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.amberText, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-            🟡 Review these carefully
+            Review these carefully
           </div>
           {medium.map(v => (
             <div key={v.name} style={{ marginBottom: 8, padding: '10px 14px', background: 'rgba(255,184,48,0.06)', borderRadius: 8, border: `0.5px solid rgba(255,184,48,0.2)` }}>
@@ -230,10 +230,10 @@ function ImpossibilityBlock({ conflicts }: { conflicts: ImpossibilityConflict[] 
   if (!conflicts.length) return null;
   const c = conflicts[0];
   return (
-    <Section icon="⚡" title="Two fairness checks give conflicting results — this is normal and important" color="#A855F7" borderColor="rgba(168,85,247,0.3)" bg="rgba(168,85,247,0.06)">
+    <Section icon="" title="Two fairness checks give conflicting results, this is normal and important" color="#A855F7" borderColor="rgba(168,85,247,0.3)" bg="rgba(168,85,247,0.06)">
       <p style={{ fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 12 }}>
         <strong>What happened:</strong> One fairness check says the model is fair ({c.metric_a} ✓).
-        Another says it is not ({c.metric_b} ✗). Both are mathematically correct at the same time.
+        Another says it is not ({c.metric_b}). Both are mathematically correct at the same time.
         This is not a bug — it is a fundamental mathematical property of algorithmic fairness.
         <Tag text="Chouldechova (2017) impossibility theorem" />
       </p>
@@ -261,7 +261,7 @@ function WhatToDoBlock({ report }: { report: AuditReport }) {
   if (!plan.length && flags === 0) return null;
 
   return (
-    <Section icon="🛠️" title="What you can do — step by step" color={C.blue} borderColor="rgba(77,159,255,0.3)" bg={C.blueBg}>
+    <Section icon="" title="What you can do, step by step" color={C.blue} borderColor="rgba(77,159,255,0.3)" bg={C.blueBg}>
       <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.65, marginBottom: 14 }}>
         These steps are ordered by impact — doing step 1 first will fix the most bias.
         Each step shows the projected improvement to the fairness score.
@@ -280,7 +280,7 @@ function WhatToDoBlock({ report }: { report: AuditReport }) {
                 {step.action === 'MONITOR'  && `Monitor "${step.variable}" after deployment`}
               </span>
               <Tag text={step.action} />
-              {step.passes_after && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.green }}>✓ passes threshold after this step</span>}
+              {step.passes_after && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.green }}>passes threshold after this step</span>}
             </div>
             <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, margin: 0 }}>{step.reason}</p>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, marginTop: 5 }}>

@@ -51,12 +51,12 @@ function computeSimulation(dataset: PreauditedDataset, dirResult: typeof dataset
     driving_variables: drivingVars,
     top_fix: topFix,
     framing: {
-      headline: `For every 1,000 people evaluated, ${per1000} more ${dirResult.privileged_group} people receive a positive outcome than ${disadvantaged} people — due to proxy variables in the training data.`,
+      headline: `For every 1,000 people evaluated, ${per1000} more ${dirResult.privileged_group} people receive a positive outcome than ${disadvantaged} people due to proxy variables in the training data.`,
       comparison: `${dirResult.privileged_group}: positive outcome ${(advRate * 100).toFixed(0)}% of the time.\n${disadvantaged}: positive outcome ${(disRate * 100).toFixed(0)}% of the time.\nThat's a ${(Math.abs(advRate - disRate) * 100).toFixed(1)} percentage point gap.`,
       legal_status: dirResult.passes
         ? `Within legal bounds (DIR ${dirResult.dir_score.toFixed(2)} ≥ 0.80), but a gap still exists and should be monitored.`
         : `FAILS the EEOC 4/5ths Rule. DIR of ${dirResult.dir_score.toFixed(2)} means ${disadvantaged} people receive positive outcomes at only ${Math.round(dirResult.dir_score * 100)}% the rate of ${dirResult.privileged_group} people.`,
-      real_world: `In a system processing 10,000 decisions per year, this bias results in approximately ${per1000 * 10} fewer positive outcomes for ${disadvantaged} people compared to ${dirResult.privileged_group} people — not because of merit, but because of proxy variables in the training data.`,
+      real_world: `In a system processing 10,000 decisions per year, this bias results in approximately ${per1000 * 10} fewer positive outcomes for ${disadvantaged} people compared to ${dirResult.privileged_group} people not because of merit, but because of proxy variables in the training data.`,
     },
   };
 }
@@ -93,7 +93,7 @@ export default function SimulatePage() {
           What Would Happen to You?
         </h2>
         <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65, maxWidth: 600 }}>
-          Pick a real dataset. Pick two demographic groups. See the outcome gap — exactly how many
+          Pick a real dataset. Pick two demographic groups. See the outcome gap exactly how many
           more people from one group receive a positive outcome compared to the other, and why.
           Grounded in real computed data, not speculation.
         </p>
@@ -103,7 +103,7 @@ export default function SimulatePage() {
       {step >= 1 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.8px', color: C.hint, marginBottom: 12 }}>
-            Step 1 — Choose a real-world dataset
+            Step 1: Choose a real-world dataset
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
             {PREAUDITED_DATASETS.map(ds => {
@@ -140,7 +140,7 @@ export default function SimulatePage() {
           background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 14,
         }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.8px', color: C.hint, marginBottom: 14 }}>
-            Step 2 — Choose protected attribute to compare
+            Step 2: Choose protected attribute to compare
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -190,7 +190,7 @@ export default function SimulatePage() {
             background: C.blue, color: '#fff', fontFamily: 'var(--mono)',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
           }}>
-            Show Me The Outcome Gap →
+            Show Me The Outcome Gap
           </button>
         </div>
       )}
@@ -206,7 +206,7 @@ export default function SimulatePage() {
             borderBottom: `0.5px solid ${C.border}`,
           }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12 }}>
-              The Outcome Gap · {dataset.name}
+              The Outcome Gap {dataset.name}
             </div>
             <div style={{ fontFamily: 'var(--syne)', fontSize: 17, fontWeight: 600, lineHeight: 1.5, marginBottom: 20, maxWidth: 600 }}>
               {result.framing.headline}
@@ -263,7 +263,7 @@ export default function SimulatePage() {
             {/* Real-world scale */}
             <div style={{ marginBottom: 24, padding: '16px 20px', background: C.surface2, borderRadius: 12, border: `0.5px solid ${C.border}` }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
-                At Scale — Real World Impact
+                At Scale, Real World Impact
               </div>
               <p style={{ fontSize: 14, color: C.text, lineHeight: 1.7, margin: 0 }}>
                 {result.framing.real_world}
@@ -294,11 +294,11 @@ export default function SimulatePage() {
             {result.driving_variables.length > 0 && (
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.8px', color: C.hint, marginBottom: 12 }}>
-                  Why This Gap Exists — The Proxy Variables
+                  Why This Gap Exists: The Proxy Variables
                 </div>
                 <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
                   These variables are mathematically correlated with the protected attribute.
-                  The model uses them as stand-ins — which is legally equivalent to using the protected attribute directly.
+                  The model uses them as stand-ins which is legally equivalent to using the protected attribute directly.
                 </p>
                 {result.driving_variables.map(v => (
                   <div key={v.name} style={{
@@ -334,12 +334,12 @@ export default function SimulatePage() {
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 600 }}>{result.top_fix.variable}</span>
                     <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: result.top_fix.passes ? C.green : C.amber }}>
-                      DIR → {result.top_fix.dir_after.toFixed(2)} {result.top_fix.passes ? '✓ PASS' : ''}
+                      DIR → {result.top_fix.dir_after.toFixed(2)} {result.top_fix.passes ? 'PASS' : ''}
                     </span>
                   </div>
                   <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, margin: 0 }}>
                     {result.top_fix.passes
-                      ? `Removing "${result.top_fix.variable}" alone would bring this dataset to a passing grade — the outcome gap would shrink from ${(result.absolute_gap * 100).toFixed(1)}pp to legal compliance.`
+                      ? `Removing "${result.top_fix.variable}" alone would bring this dataset to a passing grade the outcome gap would shrink from ${(result.absolute_gap * 100).toFixed(1)}pp to legal compliance.`
                       : `Removing "${result.top_fix.variable}" reduces the gap but further remediation is still needed to reach the 0.80 threshold.`
                     }
                   </p>

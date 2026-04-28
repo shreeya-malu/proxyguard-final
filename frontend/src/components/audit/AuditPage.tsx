@@ -1117,7 +1117,7 @@ function RemediationLoopPanel({ report }: { report: AuditReport }) {
 
       <div style={{ padding: '10px 18px', background: C.surface2, borderTop: `0.5px solid ${C.border}` }}>
         <p style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, margin: 0, lineHeight: 1.5 }}>
-          ◈ Projections use the unified engine: bias_contribution_pct × risk_factor × intervention_attenuation.
+          Projections use the unified engine: bias_contribution_pct × risk_factor × intervention_attenuation.
           REMOVE: factor 0.38/0.22. BIN: 55% of REMOVE. REWEIGHT: 40% of REMOVE.
           Re-upload your dataset after applying each fix to get a verified measurement — projections are lower-bound estimates.
         </p>
@@ -1190,14 +1190,14 @@ export default function AuditPage({ report: r, auditId, sensitivityReports, dlpR
   const gc = gradeColor(r.overall_grade);
 
   const tabs = [
-    { id: 'plain' as const,       label: '📖 Plain English' },
+    { id: 'plain' as const,       label: 'Plain English' },
     { id: 'overview' as const,    label: 'Overview' },
     { id: 'story' as const, label: 'Human Impact', icon: '❤' },
     { id: 'metrics' as const,     label: 'All Metrics',       badge: r.metrics_computed },
     { id: 'proxies' as const,     label: 'Proxies',           badge: r.total_flags },
     { id: 'sandbox' as const,     label: 'Sandbox',           badge: undefined },
-    { id: 'remediation' as const, label: '🔧 Fix & Re-audit', badge: r.remediation_plan?.length ?? 0, show: (r.remediation_plan?.length ?? 0) > 0 },
-    { id: 'sensitivity' as const, label: 'Sensitivity ◈',    badge: sensitivityReports.length, show: sensitivityReports.length > 0 },
+    { id: 'remediation' as const, label: 'Fix & Re-audit', badge: r.remediation_plan?.length ?? 0, show: (r.remediation_plan?.length ?? 0) > 0 },
+    { id: 'sensitivity' as const, label: 'Sensitivity',    badge: sensitivityReports.length, show: sensitivityReports.length > 0 },
     { id: 'legal' as const,       label: 'Legal',             badge: gemini.legal_context?.length },
   ];
 

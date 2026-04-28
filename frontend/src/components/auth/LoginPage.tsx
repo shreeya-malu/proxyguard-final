@@ -24,7 +24,7 @@ export default function LoginPage() {
 
         <p className="login-sub">
           Upload a dataset. Get a cryptographically-signed bias audit in under 10 seconds.
-          Pure mathematics — no AI auditing AI.
+          Pure mathematics, no AI auditing AI.
         </p>
 
         {/* Trust badges */}

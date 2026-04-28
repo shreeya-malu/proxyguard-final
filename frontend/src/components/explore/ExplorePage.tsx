@@ -52,7 +52,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
           Explore Famous Biased Datasets
         </h2>
         <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65, maxWidth: 600 }}>
-          Five real-world datasets with documented, published bias — already audited
+          Five real-world datasets with documented, published bias already audited
           and graded. No upload needed. See exactly how bias manifests in systems
           that affected millions of real people.
         </p>
@@ -184,7 +184,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                       background: C.blueBg, color: C.blueText,
                       fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer', fontWeight: 500,
                     }}>
-                      Simulate →
+                      Simulate
                     </button>
                   )}
                   <button onClick={() => setSelected(null)} style={{
@@ -234,7 +234,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                 <div>
                   {/* DIR per group */}
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.8px', color: C.hint, marginBottom: 12 }}>
-                    Disparate Impact · Per Protected Attribute
+                    Disparate Impact Per Protected Attribute
                   </div>
                   {selected.disparate_impact.map(d => (
                     <div key={d.protected_attribute} style={{ marginBottom: 16 }}>
@@ -263,7 +263,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                       </div>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 10, padding: '6px 10px', background: d.passes ? C.greenBg : C.redBg, borderRadius: 6, color: d.passes ? C.greenText : C.redText }}>
                         {d.unprivileged_group} receives positive outcome at {(d.dir_score * 100).toFixed(0)}% the rate of {d.privileged_group}
-                        {!d.passes && ' — FAILS EEOC 4/5ths Rule'}
+                        {!d.passes && ' FAILS EEOC 4/5ths Rule'}
                       </div>
                     </div>
                   ))}
@@ -288,7 +288,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
               {activeTab === 'variables' && (
                 <div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.8px', color: C.hint, marginBottom: 14 }}>
-                    Variable Risk · Bias Attribution
+                    Variable Risk Bias Attribution
                   </div>
                   {selected.top_variables.map(v => {
                     const rColor = v.risk_level === 'HIGH' ? C.red : v.risk_level === 'MEDIUM' ? C.amber : C.hint;
@@ -322,7 +322,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                   </p>
                   {selected.interactions.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '30px 20px', color: C.green, fontFamily: 'var(--mono)', fontSize: 13 }}>
-                      ✓ No interaction biases detected
+                      No interaction biases detected
                     </div>
                   ) : selected.interactions.map((ix, i) => (
                     <div key={i} style={{ marginBottom: 14, padding: '12px 14px', background: C.surface2, borderRadius: 10, borderLeft: `3px solid #A855F7` }}>
@@ -330,7 +330,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 9px', borderRadius: 4, background: 'rgba(168,85,247,0.15)', color: '#C084FC' }}>{ix.feature_a}</span>
                         <span style={{ color: C.hint, fontSize: 11 }}>×</span>
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 9px', borderRadius: 4, background: 'rgba(168,85,247,0.15)', color: '#C084FC' }}>{ix.feature_b}</span>
-                        <span style={{ color: C.hint }}>──▶</span>
+                        <span style={{ color: C.hint }}></span>
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 9px', borderRadius: 4, background: C.amberBg, color: C.amberText }}>{ix.protected}</span>
                         <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 11, color: C.red }}>+{ix.lift.toFixed(2)} lift</span>
                       </div>
@@ -373,7 +373,7 @@ export default function ExplorePage({ onAuditDataset, onSimulateDataset }: Props
                           }}>{step.action}</span>
                           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 500 }}>{step.variable}</span>
                           <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: step.passes ? C.green : C.amber }}>
-                            DIR → {step.dir_after.toFixed(2)} {step.passes ? '✓ PASS' : ''}
+                            DIR : {step.dir_after.toFixed(2)} {step.passes ? 'PASS' : ''}
                           </span>
                         </div>
                       </div>

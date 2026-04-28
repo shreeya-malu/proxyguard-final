@@ -9,9 +9,9 @@ interface Props {
 }
 
 const INDUSTRY_META: Record<Industry, { icon: string; label: string; metric: string; description: string }> = {
-  finance:    { icon: '🏦', label: 'Finance',     metric: 'FPR Parity',         description: 'Equal Credit Opportunity Act, Fair Housing Act' },
-  hr:         { icon: '👥', label: 'HR / Hiring', metric: 'Demographic Parity', description: 'Title VII, EEOC 4/5ths Rule' },
-  healthcare: { icon: '⚕',  label: 'Healthcare',  metric: 'TPR Parity',         description: 'Civil Rights Act Title VI, ADA §504' },
+  finance:    { icon: '', label: 'Finance',     metric: 'FPR Parity',         description: 'Equal Credit Opportunity Act, Fair Housing Act' },
+  hr:         { icon: '', label: 'HR / Hiring', metric: 'Demographic Parity', description: 'Title VII, EEOC 4/5ths Rule' },
+  healthcare: { icon: '',  label: 'Healthcare',  metric: 'TPR Parity',         description: 'Civil Rights Act Title VI, ADA §504' },
 };
 
 // ── Parse CSV headers from a File object (browser-side, reads first 4 KB only)
@@ -177,14 +177,13 @@ export default function UploadPage({ onAuditComplete }: Props) {
     <div className="upload-page">
       {showDemo && (
         <DemoMode
-          onDemoComplete={(result) => { setShowDemo(false); onAuditComplete(result); }}
-          onDismiss={() => setShowDemo(false)}
+          onExit={() => setShowDemo(false)}
         />
       )}
 
       <div className="upload-headline">Audit your dataset<br /><em>before</em> you train.</div>
       <p className="upload-sub">
-        Upload a CSV. ProxyGuard reads the column headers automatically — click to select
+        Upload a CSV. ProxyGuard reads the column headers automatically click to select
         your protected attributes and outcome column. No typing required.
       </p>
 
@@ -219,14 +218,14 @@ export default function UploadPage({ onAuditComplete }: Props) {
             fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,
             color: '#4D9FFF', marginBottom: 2,
           }}>
-            Watch live demo — COMPAS dataset
+            Watch guided tour: how ProxyGuard works
           </div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#8888AA' }}>
-            See bias detected in a real US court dataset · 22 seconds · no upload needed
+            See every feature explained · real data · exit any time
           </div>
         </div>
         <div style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 10, color: '#55556A' }}>
-          22s
+          →
         </div>
       </button>
 
@@ -243,7 +242,7 @@ export default function UploadPage({ onAuditComplete }: Props) {
           style={{ display: 'none' }}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f); }}
         />
-        <div className="dz-icon">{parsing ? '⏳' : file ? '✓' : '↑'}</div>
+        <div className="dz-icon">{parsing ? '' : file ? '✓' : '↑'}</div>
         <div className="dz-label">
           {parsing
             ? 'Reading column headers…'
@@ -318,7 +317,7 @@ export default function UploadPage({ onAuditComplete }: Props) {
               {/* Warn if outcome is also selected as protected */}
               {outcomeCol && protectedCols.includes(outcomeCol) && (
                 <div style={{ color: '#E24B4A', marginTop: 4 }}>
-                  ⚠ Outcome column is also selected as a protected attribute — please deselect one.
+                  Outcome column is also selected as a protected attribute, please deselect one.
                 </div>
               )}
             </div>

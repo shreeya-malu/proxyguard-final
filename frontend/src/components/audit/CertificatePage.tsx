@@ -150,7 +150,7 @@ export default function CertificatePage({ certificate: cert, report, auditId, on
           <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Publish to Public Registry</div>
           <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
             Publishing makes this audit permanently verifiable by anyone. No organisation can falsify or hide results.
-            The registry is the accountability layer — making non-auditing visible.
+            The registry is the accountability layer making non-auditing visible.
           </p>
           {publishError && <div style={{ color: C.red, fontFamily: 'var(--mono)', fontSize: 11, marginBottom: 10 }}>{publishError}</div>}
           <button onClick={handlePublish} disabled={publishing} style={{
@@ -163,14 +163,14 @@ export default function CertificatePage({ certificate: cert, report, auditId, on
         </div>
       ) : (
         <div style={{ marginTop: 16, padding: '18px 20px', background: C.greenBg, border: `0.5px solid rgba(61,220,132,0.4)`, borderRadius: 12 }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: C.green, marginBottom: 6 }}>✓ Published to Public Registry</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: C.green, marginBottom: 6 }}>Published to Public Registry</div>
           <p style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
             This audit is now publicly verifiable. Anyone can verify the hash at any time.
           </p>
           <button onClick={onViewRegistry} style={{
             padding: '8px 16px', background: 'none', border: `0.5px solid rgba(61,220,132,0.5)`,
             borderRadius: 8, color: C.green, fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer',
-          }}>View in Registry →</button>
+          }}>View in Registry</button>
         </div>
       )}
 

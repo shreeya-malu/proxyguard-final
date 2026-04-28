@@ -95,7 +95,7 @@ export default function RegistryPage() {
         <h2 style={{ fontFamily: 'var(--syne)', fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 6 }}>Verified Fairness Audits</h2>
         <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65, maxWidth: 600 }}>
           Every audit here is SHA-256 hashed, KMS-signed, and permanently verifiable.
-          No organisation can falsify results. Anyone can verify any entry — no login required.
+          No organisation can falsify results. Anyone can verify any entry no login required.
           This is AI accountability on the record.
         </p>
       </div>
@@ -145,7 +145,7 @@ export default function RegistryPage() {
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{r.dataset_name}</div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                     {r.sdgs?.map(s => <span key={s} style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '1px 5px', borderRadius: 99, background: `${SDG_COLORS[s]}22`, color: SDG_COLORS[s] }}>SDG {s}</span>)}
-                    {r.has_impossibility && <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '1px 5px', borderRadius: 99, background: 'rgba(168,85,247,0.15)', color: '#C084FC' }}>⚡ conflict</span>}
+                    {r.has_impossibility && <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '1px 5px', borderRadius: 99, background: 'rgba(168,85,247,0.15)', color: '#C084FC' }}>conflict</span>}
                   </div>
                 </div>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: C.muted }}>{r.industry?.slice(0,12)}</span>
@@ -184,7 +184,7 @@ export default function RegistryPage() {
                       color: verified === r.audit_id ? C.green : C.muted,
                       fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer',
                     }}>
-                      {verifying === r.audit_id ? 'Verifying…' : verified === r.audit_id ? '✓ Verified' : 'Verify Hash'}
+                      {verifying === r.audit_id ? 'Verifying…' : verified === r.audit_id ? 'Verified' : 'Verify Hash'}
                     </button>
                   </div>
                 </div>
@@ -198,9 +198,9 @@ export default function RegistryPage() {
       <div style={{ marginTop: 20, padding: '16px 20px', background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 12 }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: C.hint, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>How Verification Works</div>
         <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, margin: 0 }}>
-          Every audit generates a deterministic SHA-256 hash of the complete results — same input always produces the same hash.
+          Every audit generates a deterministic SHA-256 hash of the complete results same input always produces the same hash.
           This hash is signed by Google Cloud KMS and stored in Firestore with a server-side timestamp.
-          To verify: re-hash the published report and compare. Any tampering produces a different hash — forgery is mathematically impossible.
+          To verify: re-hash the published report and compare. Any tampering produces a different hash forgery is mathematically impossible.
           The registry is public and readable by anyone without authentication, anchored to: <span style={{ fontFamily: 'var(--mono)', color: C.blue }}>Firestore + Cloud KMS</span>.
         </p>
       </div>
