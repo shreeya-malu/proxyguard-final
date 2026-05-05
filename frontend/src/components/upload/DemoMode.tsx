@@ -6,21 +6,9 @@
  * Small popup "narrator boxes" explain what's happening at each step —
  * like having a human guide pointing at the screen.
  *
- * Steps:
- *   0  — The problem ProxyGuard solves
- *   1  — Upload screen (dropzone)
- *   2  — Industry selection
- *   3  — What the engine computes (7 metrics)
- *   4  — Plain English tab
- *   5  — Human Impact tab
- *   6  — Metrics tab
- *   7  — Proxies tab
- *   8  — Proxy detail (expand a variable)
- *   9  — Sandbox tab
- *   10 — Fix & Re-audit
- *   11 — Explore page
- *   12 — Registry & Certificate
- *   13 — Why trust this (academic basis)
+ * KEY FIX: Narrator is now rendered as a fixed overlay OUTSIDE the
+ * scrollable content area, so it never overlaps or gets clipped.
+ * A soft vignette dims the screen edges to keep focus on the popup.
  */
 
 import { useState, useEffect } from 'react';
@@ -73,14 +61,14 @@ const STEPS: Step[] = [
     id: 'upload',
     title: 'Step 1 — Upload your dataset',
     body: 'Start by dragging and dropping any CSV. ProxyGuard reads the column headers automatically and guesses which columns are protected attributes (race, gender, age) and which is your outcome column. No manual setup.',
-    position: 'top-right',
+    position: 'bottom-right',
     screen: 'upload',
   },
   {
     id: 'config',
     title: 'Tell it your industry',
     body: 'Select Finance, HR, or Healthcare. Each has a different legal fairness threshold. Finance uses the Equal Credit Opportunity Act. HR uses the EEOC 4/5ths Rule. Healthcare uses TPR Parity. ProxyGuard picks the right legal standard automatically.',
-    position: 'top-right',
+    position: 'bottom-right',
     screen: 'config',
   },
   {
@@ -93,65 +81,65 @@ const STEPS: Step[] = [
   {
     id: 'plain',
     title: 'Plain English tab — built for non-experts',
-    body: 'A bias auditor\'s job isn\'t done when they find the bias — it\'s done when they\'ve communicated it. This tab translates every metric into plain language. A CEO, a judge, or a regulator can read this and understand exactly what\'s wrong.',
-    position: 'top-left',
+    body: "A bias auditor's job isn't done when they find the bias — it's done when they've communicated it. This tab translates every metric into plain language. A CEO, a judge, or a regulator can read this and understand exactly what's wrong.",
+    position: 'bottom-left',
     screen: 'plain',
   },
   {
     id: 'story',
     title: 'Human Impact tab — the emotional layer',
-    body: 'Numbers don\'t change minds. Stories do. Gemini translates the audit results into a human story — one person, one decision, what it meant for their life. The numbers come from the math engine. Gemini only writes the words, and it\'s explicitly constrained to never invent statistics.',
-    position: 'top-left',
+    body: "Numbers don't change minds. Stories do. Gemini translates the audit results into a human story — one person, one decision, what it meant for their life. The numbers come from the math engine. Gemini only writes the words, and it's explicitly constrained to never invent statistics.",
+    position: 'bottom-left',
     screen: 'story',
   },
   {
     id: 'metrics',
     title: 'All Metrics tab — the full technical audit',
-    body: 'Every fairness metric, its value, the legal threshold, and PASS/FAIL status. If two metrics are mathematically impossible to satisfy simultaneously — like Predictive Parity vs Equalised Odds when base rates differ — ProxyGuard flags it as an Impossibility Conflict. That\'s a finding in itself.',
-    position: 'top-left',
+    body: "Every fairness metric, its value, the legal threshold, and PASS/FAIL status. If two metrics are mathematically impossible to satisfy simultaneously — like Predictive Parity vs Equalised Odds when base rates differ — ProxyGuard flags it as an Impossibility Conflict. That's a finding in itself.",
+    position: 'bottom-left',
     screen: 'metrics',
   },
   {
     id: 'proxies',
     title: 'Proxies tab — the most important screen',
-    body: 'This is where ProxyGuard goes further than any other tool. Discrimination law bans using protected attributes directly. But a model can achieve identical discrimination through proxies — zip code predicts race, surname predicts caste, school name predicts religion. This tab finds them all, ranked by bias contribution.',
-    position: 'top-right',
+    body: "This is where ProxyGuard goes further than any other tool. Discrimination law bans using protected attributes directly. But a model can achieve identical discrimination through proxies — zip code predicts race, surname predicts caste, school name predicts religion. This tab finds them all, ranked by bias contribution.",
+    position: 'bottom-left',
     screen: 'proxies',
   },
   {
     id: 'proxy-detail',
     title: 'Click any variable to see the proof',
-    body: 'Expand a variable and you\'ll see the Mutual Information score — precisely how much information about the protected attribute is encoded here. A score of 0.83 means knowing someone\'s decile_score predicts their race with 83% accuracy. The legal flagging threshold is 40%.',
+    body: "Expand a variable and you'll see the Mutual Information score — precisely how much information about the protected attribute is encoded here. A score of 0.83 means knowing someone's decile_score predicts their race with 83% accuracy. The legal flagging threshold is 40%.",
     position: 'bottom-right',
     screen: 'proxy-detail',
   },
   {
     id: 'sandbox',
     title: 'Sandbox tab — experiment before committing',
-    body: 'Toggle proxy variables on and off to see how your fairness metrics shift in real time. The projection uses calibrated factors from the fairness literature — it\'s not a guess. Test your fix before applying it to your actual model.',
-    position: 'top-left',
+    body: "Toggle proxy variables on and off to see how your fairness metrics shift in real time. The projection uses calibrated factors from the fairness literature — it's not a guess. Test your fix before applying it to your actual model.",
+    position: 'bottom-left',
     screen: 'sandbox',
   },
   {
     id: 'remediation',
     title: 'Fix & Re-audit — the Monday morning answer',
-    body: 'Here\'s what you actually do with the findings. A step-by-step remediation plan: REMOVE this variable, BIN that one, REWEIGHT training. After each fix, it shows exactly how many people per year would now receive a fair outcome.',
-    position: 'top-left',
+    body: "Here's what you actually do with the findings. A step-by-step remediation plan: REMOVE this variable, BIN that one, REWEIGHT training. After each fix, it shows exactly how many people per year would now receive a fair outcome.",
+    position: 'bottom-left',
     screen: 'remediation',
     nextLabel: 'Show me Explore →',
   },
   {
     id: 'explore',
     title: 'Explore — 5 famous biased datasets',
-    body: 'Don\'t have your own data? Start here. Five pre-audited real-world datasets — COMPAS (US courts), German Credit, Adult Income, and more. Each is fully audited and graded. Use these to understand what bias actually looks like before auditing your own.',
-    position: 'top-right',
+    body: "Don't have your own data? Start here. Five pre-audited real-world datasets — COMPAS (US courts), German Credit, Adult Income, and more. Each is fully audited and graded. Use these to understand what bias actually looks like before auditing your own.",
+    position: 'bottom-right',
     screen: 'explore',
   },
   {
     id: 'registry',
     title: 'Public Registry — accountability at scale',
     body: 'Every completed audit can be published here. Each entry gets a cryptographically signed certificate — tamper-proof, hash-verified with Cloud KMS. An organization can prove to regulators or the public that their model was checked before deployment.',
-    position: 'top-left',
+    position: 'bottom-left',
     screen: 'registry',
   },
   {
@@ -245,9 +233,9 @@ function ScreenProblem() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '60px 40px', textAlign: 'center' }}>
       <div style={{ display: 'flex', gap: 20, marginBottom: 44, flexWrap: 'wrap', justifyContent: 'center' }}>
         {[
-          { icon: '', domain: 'Finance',    decision: 'Loan approved?',       bias: 'Race proxied by zip code',          color: C.red },
-          { icon: '', domain: 'HR / Hiring', decision: 'Interview shortlist?', bias: 'Caste proxied by surname',          color: C.amber },
-          { icon: '', domain: 'Healthcare', decision: 'Referral approved?',   bias: 'Gender proxied by diagnosis history', color: C.slate },
+          { icon: '🏦', domain: 'Finance',    decision: 'Loan approved?',       bias: 'Race proxied by zip code',          color: C.red },
+          { icon: '💼', domain: 'HR / Hiring', decision: 'Interview shortlist?', bias: 'Caste proxied by surname',          color: C.amber },
+          { icon: '🏥', domain: 'Healthcare', decision: 'Referral approved?',   bias: 'Gender proxied by diagnosis history', color: C.slate },
         ].map((item, i) => (
           <div key={i} style={{ background: C.s1, border: `0.5px solid ${C.border2}`, borderRadius: 14, padding: '24px 22px', width: 192, animation: `pgFU 0.4s ease ${i * 0.12}s both` }}>
             <div style={{ fontSize: 28, marginBottom: 10 }}>{item.icon}</div>
@@ -299,9 +287,9 @@ function ScreenUpload({ showIndustry }: { showIndustry?: boolean }) {
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: C.muted, marginBottom: 10 }}>Industry context</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
           {[
-            { icon: '', label: 'Finance',    metric: 'FPR Parity',   law: 'ECOA', active: showIndustry && false },
-            { icon: '', label: 'HR / Hiring', metric: 'Dem. Parity', law: 'EEOC', active: false },
-            { icon: '', label: 'Healthcare', metric: 'TPR Parity',   law: 'CRA', active: false },
+            { icon: '🏦', label: 'Finance',    metric: 'FPR Parity',   law: 'ECOA' },
+            { icon: '💼', label: 'HR / Hiring', metric: 'Dem. Parity', law: 'EEOC' },
+            { icon: '🏥', label: 'Healthcare', metric: 'TPR Parity',   law: 'CRA' },
           ].map((ind, i) => (
             <div key={i} style={{
               padding: '13px 10px', borderRadius: 8, textAlign: 'center',
@@ -439,8 +427,8 @@ function ScreenMetrics() {
           return (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 8, marginBottom: 4,
-              background: m.highlight ? `${C.amber}0A` : C.s1,
-              border: `0.5px solid ${m.highlight ? C.amber + '33' : C.border}`,
+              background: (m as any).highlight ? `${C.amber}0A` : C.s1,
+              border: `0.5px solid ${(m as any).highlight ? C.amber + '33' : C.border}`,
               animation: `pgFU 0.22s ease ${i * 0.05}s both`,
             }}>
               <span style={{ fontFamily: 'var(--sans)', fontSize: 12, fontWeight: 500, flex: 1, color: C.text }}>{m.name}</span>
@@ -672,86 +660,178 @@ function ScreenTrust() {
   );
 }
 
-// ── Narrator popup ────────────────────────────────────────────────────────────
-function Narrator({ step, index, total, onNext, onPrev, onExit }: {
+// ── Narrator popup ─────────────────────────────────────────────────────────────
+// Rendered as a FIXED overlay at the root of the modal — never inside the
+// scrollable content pane, so it can never be clipped or overlapped.
+function Narrator({ step, index, total, onNext, onPrev, onExit, containerRef }: {
   step: Step; index: number; total: number;
   onNext: () => void; onPrev: () => void; onExit: () => void;
+  containerRef: React.RefObject<HTMLDivElement>;
 }) {
   const [show, setShow] = useState(false);
   useEffect(() => { setShow(false); const t = setTimeout(() => setShow(true), 60); return () => clearTimeout(t); }, [step.id]);
 
-  const pos: React.CSSProperties = (() => {
-    const base: React.CSSProperties = { position: 'absolute', zIndex: 200, width: 340 };
+  // Position relative to the modal container (not the viewport)
+  const getPos = (): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      position: 'absolute',
+      zIndex: 300,
+      width: 360,
+      maxWidth: 'calc(100% - 32px)',
+    };
+    const PAD = 16;
     switch (step.position) {
-      case 'top-left':     return { ...base, top: 16, left: 16 };
-      case 'top-right':    return { ...base, top: 16, right: 16 };
-      case 'bottom-left':  return { ...base, bottom: 16, left: 16 };
-      case 'bottom-right': return { ...base, bottom: 16, right: 16 };
-      case 'center':       return { ...base, width: 420, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-      default:             return { ...base, bottom: 16, right: 16 };
+      case 'top-left':     return { ...base, top: PAD, left: PAD };
+      case 'top-right':    return { ...base, top: PAD, right: PAD };
+      case 'bottom-left':  return { ...base, bottom: PAD, left: PAD };
+      case 'bottom-right': return { ...base, bottom: PAD, right: PAD };
+      case 'center':       return { ...base, width: 440, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+      default:             return { ...base, bottom: PAD, right: PAD };
     }
-  })();
+  };
+
+  const pos = getPos();
+  const isCenter = step.position === 'center';
 
   return (
-    <div style={{ ...pos, opacity: show ? 1 : 0, transition: 'opacity 0.28s ease, transform 0.28s ease', transform: `${pos.transform ?? ''} translateY(${show ? 0 : 8}px)` }}>
-      <div style={{ background: C.s1, border: `0.5px solid ${C.border2}`, borderRadius: 14, boxShadow: '0 10px 48px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
-        <div style={{ height: 2, background: `linear-gradient(90deg, transparent 5%, ${C.blue} 50%, transparent 95%)` }} />
-        <div style={{ padding: '16px 18px' }}>
-          {/* Progress bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', gap: 3 }}>
-              {Array.from({ length: total }).map((_, i) => (
-                <div key={i} style={{ height: 3, borderRadius: 2, transition: 'all 0.25s', width: i === index ? 18 : 5, background: i < index ? C.green : i === index ? C.blue : C.border2 }} />
-              ))}
+    <>
+      {/* Soft vignette overlay — dims screen behind the popup without blocking it */}
+      {!isCenter && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 250, pointerEvents: 'none',
+          background: (() => {
+            switch (step.position) {
+              case 'bottom-right': return 'radial-gradient(ellipse 65% 55% at 85% 85%, rgba(5,6,10,0) 0%, rgba(5,6,10,0.72) 100%)';
+              case 'bottom-left':  return 'radial-gradient(ellipse 65% 55% at 15% 85%, rgba(5,6,10,0) 0%, rgba(5,6,10,0.72) 100%)';
+              case 'top-right':    return 'radial-gradient(ellipse 65% 55% at 85% 15%, rgba(5,6,10,0) 0%, rgba(5,6,10,0.72) 100%)';
+              case 'top-left':     return 'radial-gradient(ellipse 65% 55% at 15% 15%, rgba(5,6,10,0) 0%, rgba(5,6,10,0.72) 100%)';
+              default:             return 'none';
+            }
+          })(),
+        }} />
+      )}
+      {/* Center backdrop */}
+      {isCenter && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 250, pointerEvents: 'none',
+          background: 'rgba(5,6,10,0.6)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+        }} />
+      )}
+
+      {/* Popup card */}
+      <div style={{
+        ...pos,
+        opacity: show ? 1 : 0,
+        transition: 'opacity 0.28s ease, transform 0.28s ease',
+        transform: `${pos.transform ?? ''} translateY(${show ? 0 : 8}px)`,
+      }}>
+        <div style={{
+          background: 'rgba(19,19,26,0.97)',
+          border: `0.5px solid rgba(55,55,80,0.9)`,
+          borderRadius: 14,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(77,159,255,0.08)',
+          overflow: 'hidden',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}>
+          {/* Top accent line */}
+          <div style={{ height: 2, background: `linear-gradient(90deg, transparent 5%, ${C.blue} 50%, transparent 95%)` }} />
+
+          <div style={{ padding: '14px 16px' }}>
+            {/* Progress + exit row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {Array.from({ length: total }).map((_, i) => (
+                  <div key={i} style={{
+                    height: 3, borderRadius: 2, transition: 'all 0.25s',
+                    width: i === index ? 18 : 5,
+                    background: i < index ? C.green : i === index ? C.blue : C.border2,
+                  }} />
+                ))}
+              </div>
+              <button
+                onClick={onExit}
+                style={{
+                  fontFamily: 'var(--mono)', fontSize: 9, color: C.hint,
+                  background: 'rgba(255,255,255,0.04)', border: `0.5px solid ${C.border}`,
+                  borderRadius: 4, padding: '3px 9px', cursor: 'pointer',
+                  transition: 'all 0.12s', letterSpacing: 0.3,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = C.red; (e.currentTarget as HTMLElement).style.color = C.red; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; (e.currentTarget as HTMLElement).style.color = C.hint; }}
+              >
+                ✕ exit
+              </button>
             </div>
-            <button
-              onClick={onExit}
-              style={{ fontFamily: 'var(--mono)', fontSize: 9, color: C.hint, background: 'none', border: `0.5px solid ${C.border}`, borderRadius: 3, padding: '2px 8px', cursor: 'pointer', transition: 'all 0.12s', letterSpacing: 0.3 }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = C.red; (e.currentTarget as HTMLElement).style.color = C.red; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; (e.currentTarget as HTMLElement).style.color = C.hint; }}
-            >
-              exit
-            </button>
+
+            {/* Step label */}
+            <div style={{
+              fontFamily: 'var(--mono)', fontSize: 8.5, letterSpacing: 1.2,
+              textTransform: 'uppercase', color: C.blue, marginBottom: 6, opacity: 0.8,
+            }}>
+              {index + 1} of {total} · {step.screen.replace(/-/g, ' ')}
+            </div>
+
+            {/* Title */}
+            <div style={{ fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 9, lineHeight: 1.3 }}>
+              {step.title}
+            </div>
+
+            {/* Body */}
+            <div style={{ fontFamily: 'var(--sans)', fontSize: 12.5, color: C.muted, lineHeight: 1.75 }}>
+              {step.body}
+            </div>
           </div>
 
-          <div style={{ fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 8, lineHeight: 1.3 }}>{step.title}</div>
-          <div style={{ fontFamily: 'var(--sans)', fontSize: 12.5, color: C.muted, lineHeight: 1.72 }}>{step.body}</div>
-        </div>
-
-        <div style={{ padding: '10px 18px', borderTop: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          {index > 0 && (
+          {/* Footer */}
+          <div style={{
+            padding: '10px 16px',
+            borderTop: `0.5px solid rgba(42,42,58,0.8)`,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(13,13,18,0.6)',
+          }}>
+            {index > 0 && (
+              <button
+                onClick={onPrev}
+                style={{
+                  fontFamily: 'var(--mono)', fontSize: 10, padding: '6px 12px', borderRadius: 6,
+                  background: 'none', border: `0.5px solid ${C.border2}`,
+                  color: C.muted, cursor: 'pointer', transition: 'color 0.12s, border-color 0.12s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = C.text; (e.currentTarget as HTMLElement).style.borderColor = C.border; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = C.muted; (e.currentTarget as HTMLElement).style.borderColor = C.border2; }}
+              >← back</button>
+            )}
+            <div style={{ flex: 1 }} />
             <button
-              onClick={onPrev}
-              style={{ fontFamily: 'var(--mono)', fontSize: 10, padding: '6px 12px', borderRadius: 6, background: 'none', border: `0.5px solid ${C.border2}`, color: C.muted, cursor: 'pointer', transition: 'color 0.12s, border-color 0.12s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = C.text; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = C.muted; }}
-            >← back</button>
-          )}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: C.hint }}>{index + 1} / {total}</span>
-          <button
-            onClick={index === total - 1 ? onExit : onNext}
-            style={{
-              fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              background: index === total - 1 ? C.green : C.blue,
-              color: C.bg, transition: 'opacity 0.15s',
-              boxShadow: index === total - 1 ? `0 0 16px ${C.green}44` : `0 0 12px ${C.blue}33`,
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-          >
-            {step.nextLabel ?? (index === total - 1 ? 'Start auditing →' : 'next →')}
-          </button>
+              onClick={index === total - 1 ? onExit : onNext}
+              style={{
+                fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                padding: '7px 18px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                background: index === total - 1
+                  ? `linear-gradient(135deg, ${C.green}, ${C.green}CC)`
+                  : `linear-gradient(135deg, ${C.blue}, ${C.blue}CC)`,
+                color: '#fff', transition: 'opacity 0.15s, transform 0.1s',
+                boxShadow: index === total - 1 ? `0 0 20px ${C.green}44` : `0 0 16px ${C.blue}44`,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.88'; (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+            >
+              {step.nextLabel ?? (index === total - 1 ? 'Start auditing →' : 'next →')}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function DemoMode({ onExit }: Props) {
   const [idx, setIdx] = useState(0);
+  const containerRef = { current: null } as React.RefObject<HTMLDivElement>;
   const step = STEPS[idx];
   const noSidebar = step.position === 'center';
 
@@ -789,9 +869,19 @@ export default function DemoMode({ onExit }: Props) {
   })();
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(5,6,10,0.92)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '93vw', maxWidth: 1040, height: '88vh', background: C.bg, borderRadius: 18, border: `0.5px solid ${C.border2}`, boxShadow: '0 28px 80px rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(5,6,10,0.92)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        width: '93vw', maxWidth: 1040, height: '88vh',
+        background: C.bg, borderRadius: 18,
+        border: `0.5px solid ${C.border2}`,
+        boxShadow: '0 28px 80px rgba(0,0,0,0.85)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        position: 'relative',  // ← narrator is absolute-positioned inside here
+      }}>
         {/* Chrome bar */}
         <div style={{ height: 44, flexShrink: 0, background: C.s1, borderBottom: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 18px', gap: 12 }}>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -805,17 +895,34 @@ export default function DemoMode({ onExit }: Props) {
           <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: C.hint }}>← → navigate · Esc exit</div>
         </div>
 
-        {/* App layout */}
+        {/* App layout — screen content */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
           {!noSidebar && <Sidebar screen={step.screen} />}
-          <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+          {/* Screen content — dimmed slightly to read popup better */}
+          <div style={{
+            flex: 1, overflowY: 'auto', position: 'relative',
+            filter: 'brightness(0.7)',
+            transition: 'filter 0.3s ease',
+          }}>
             {content}
           </div>
-          <Narrator step={step} index={idx} total={STEPS.length} onNext={goNext} onPrev={goPrev} onExit={onExit} />
+
+          {/* ★ Narrator lives here — absolute inside the modal, above everything */}
+          <Narrator
+            step={step}
+            index={idx}
+            total={STEPS.length}
+            onNext={goNext}
+            onPrev={goPrev}
+            onExit={onExit}
+            containerRef={containerRef}
+          />
         </div>
       </div>
 
-      <style>{`@keyframes pgFU { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }`}</style>
+      <style>{`
+        @keyframes pgFU { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+      `}</style>
     </div>
   );
 }
